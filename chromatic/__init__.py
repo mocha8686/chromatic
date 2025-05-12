@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         self.graph = pg.PlotWidget()
         self.graph.setYRange(-1, 1)
 
-        self.button = QPushButton("Record")
+        self.button = QPushButton("Start recording")
         self.button.clicked.connect(self.start_recording)
 
         layout = QVBoxLayout()
@@ -34,13 +34,11 @@ class MainWindow(QMainWindow):
 
         self.line = self.graph.plot(self.time, self.data)
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(lambda: print('Hi'))
-        self.timer.start(1000)
-
     def start_recording(self):
-        self.button.setEnabled(False)
+        self.button.setText("Stop recording")
+        self.button.clicked.connect(self.stop_recording)
 
+        self.stop = False
         self.p = pyaudio.PyAudio()
         self.stream = self.p.open(
             format=self.format,
@@ -51,11 +49,17 @@ class MainWindow(QMainWindow):
             stream_callback=self.new_frame,
         )
 
-        # self.stream.close()
-        # self.p.terminate()
-        # self.button.setEnabled(True)
+    def stop_recording(self):
+        self.stop = True
+        self.stream.close()
+        self.p.terminate()
+        self.button.setText("Start recording")
+        self.button.clicked.connect(self.start_recording)
 
     def new_frame(self, data, frame_count, time_info, status):
         self.data = np.fromstring(data, 'int16') / 32_768
         self.line.setData(self.time, self.data)
+
+        if self.stop:
+            return None, pyaudio.paComplete
         return None, pyaudio.paContinue
