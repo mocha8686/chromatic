@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
-from chromatic import greeting
+import sys
+from PyQt6.QtWidgets import QApplication, QWidget
 
 
 def main():
-    msg = greeting("world")
-    print(msg)
+    app = QApplication(sys.argv)
+    window = QWidget()
+    window.show()
+    app.exec()
 
 
 if __name__ == "__main__":
