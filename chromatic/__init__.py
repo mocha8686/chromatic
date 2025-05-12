@@ -48,14 +48,14 @@ class MainWindow(QMainWindow):
             rate=self.rate,
             frames_per_buffer=self.chunk,
             input=True,
+            stream_callback=self.new_frame,
         )
 
-        for _ in range(0, self.rate // self.chunk * self.seconds):
-            raw_data = self.stream.read(self.chunk)
-            arr = np.frombuffer(raw_data, dtype='>i2') / 32_768
-            self.data = arr
-            self.line.setData(self.time, self.data)
+        # self.stream.close()
+        # self.p.terminate()
+        # self.button.setEnabled(True)
 
-        self.stream.close()
-        self.p.terminate()
-        self.button.setEnabled(True)
+    def new_frame(self, data, frame_count, time_info, status):
+        self.data = np.fromstring(data, 'int16') / 32_768
+        self.line.setData(self.time, self.data)
+        return None, pyaudio.paContinue
