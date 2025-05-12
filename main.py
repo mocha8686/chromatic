@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QApplication
+
+from chromatic import MainWindow
 
 
 def main():
     app = QApplication(sys.argv)
-    window = QWidget()
+    window = MainWindow()
     window.show()
     app.exec()
 
