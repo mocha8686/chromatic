@@ -1,3 +1,4 @@
+from math import log10
 from PyQt6.QtCore import QTimer
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget
@@ -6,8 +7,8 @@ import numpy as np
 
 
 class MainWindow(QMainWindow):
-    time = [i + 1 for i in range(1024)]
-    data = [0 for _ in range(1024)]
+    freq = []
+    data = []
 
     def __init__(self) -> None:
         super().__init__()
@@ -18,8 +19,15 @@ class MainWindow(QMainWindow):
         self.rate = 44100
         self.seconds = 3
 
-        self.graph = pg.PlotWidget()
-        self.graph.setYRange(-1, 1)
+        self.freq = np.fft.rfftfreq(self.chunk, d=1.0 / self.rate)
+
+        self.graph = pg.GraphicsLayoutWidget()
+
+        self.plot = self.graph.addPlot()
+        # self.plot.setXRange(1, log10(20000))
+        self.plot.setYRange(0, 1)
+        self.plot.setMouseEnabled(x=False, y=False)
+        # self.plot.setLogMode(x=True)
 
         self.button = QPushButton("Start recording")
         self.button.clicked.connect(self.start_recording)
@@ -32,7 +40,8 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-        self.line = self.graph.plot(self.time, self.data)
+        self.line = self.plot.plot(self.freq, self.data)
+        # self.line.setLogMode(xState=True, yState=False)
 
     def start_recording(self):
         self.button.setText("Stop recording")
@@ -57,8 +66,14 @@ class MainWindow(QMainWindow):
         self.button.clicked.connect(self.start_recording)
 
     def new_frame(self, data, frame_count, time_info, status):
-        self.data = np.fromstring(data, 'int16') / 32_768
-        self.line.setData(self.time, self.data)
+        data_frame = np.fromstring(data, "int16") / 32_768
+
+        self.data = np.fft.rfft(data_frame, self.chunk)
+        self.data = self.data / np.abs(self.data).max()
+        # self.data[0] = 0
+
+        self.line.setData(self.freq, np.abs(self.data))
+        # self.plot.setXRange(log10(max(20, self.freq[1])), log10(20000))
 
         if self.stop:
             return None, pyaudio.paComplete
