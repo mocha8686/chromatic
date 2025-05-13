@@ -15,6 +15,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
+        self.setWindowTitle("Chromatic")
+
         self.chunk = 1024
         self.format = pyaudio.paInt16
         self.channels = 1
