@@ -1,8 +1,16 @@
 from math import log10
 from PyQt6 import QtCore
-from PyQt6.QtCore import QTimer, pyqtSignal
+from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 import pyqtgraph as pg
-from PyQt6.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QPushButton,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
+)
 import pyaudio
 import numpy as np
 
@@ -22,6 +30,7 @@ class MainWindow(QMainWindow):
         self.channels = 1
         self.rate = 44100
         self.seconds = 3
+        self.gain = 0
 
         self.request_graph_update.connect(self.update_line)
 
@@ -56,11 +65,20 @@ class MainWindow(QMainWindow):
             ]
         )
 
+        self.gain_label = QLabel("Gain")
+        self.gain_slider = QSlider(Qt.Orientation.Horizontal)
+        self.gain_slider.valueChanged.connect(self.set_gain)
+
+        gain_layout = QHBoxLayout()
+        gain_layout.addWidget(self.gain_label)
+        gain_layout.addWidget(self.gain_slider)
+
         self.button = QPushButton("Start recording")
         self.button.clicked.connect(self.start_recording)
 
         layout = QVBoxLayout()
         layout.addWidget(self.graph)
+        layout.addLayout(gain_layout)
         layout.addWidget(self.button)
 
         widget = QWidget()
@@ -93,10 +111,10 @@ class MainWindow(QMainWindow):
         self.button.clicked.connect(self.start_recording)
 
     def new_frame(self, data, frame_count, time_info, status):
-        data_frame = np.fromstring(data, "int16") / 32_768
+        data_frame = np.fromstring(data, "int16")
 
         self.data = np.fft.rfft(data_frame, self.chunk)
-        self.data = self.data / np.abs(self.data).max()
+        self.data *= (1 + self.gain) / 5000000.0
 
         self.freq[0] = 20
         self.request_graph_update.emit()
@@ -105,6 +123,11 @@ class MainWindow(QMainWindow):
             return None, pyaudio.paComplete
         return None, pyaudio.paContinue
 
+    def set_gain(self, gain: int):
+        print(gain)
+        self.gain = gain
+
     def update_line(self):
         self.line.setData(self.freq, np.abs(self.data))
         self.plot.setXRange(log10(20), log10(20000))
+        self.plot.setYRange(0, 1)
